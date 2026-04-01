@@ -1,0 +1,10 @@
+X:\GuideWire\gigshield-ai-backend\src\main\java\com\gigshield\api\ApiApplication.java
+X:\GuideWire\gigshield-ai-backend\src\main\java\com\gigshield\api\controller\ApiController.java
+X:\GuideWire\gigshield-ai-backend\src\main\java\com\gigshield\api\model\Claim.java
+X:\GuideWire\gigshield-ai-backend\src\main\java\com\gigshield\api\model\Disruption.java
+X:\GuideWire\gigshield-ai-backend\src\main\java\com\gigshield\api\model\Worker.java
+X:\GuideWire\gigshield-ai-backend\src\main\java\com\gigshield\api\model\Zone.java
+X:\GuideWire\gigshield-ai-backend\src\main\java\com\gigshield\api\repository\ClaimRepository.java
+X:\GuideWire\gigshield-ai-backend\src\main\java\com\gigshield\api\repository\DisruptionRepository.java
+X:\GuideWire\gigshield-ai-backend\src\main\java\com\gigshield\api\repository\WorkerRepository.java
+X:\GuideWire\gigshield-ai-backend\src\main\java\com\gigshield\api\repository\ZoneRepository.java
