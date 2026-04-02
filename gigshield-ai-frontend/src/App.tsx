@@ -3,6 +3,8 @@ import Landing from './pages/Landing';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
+import Plans from './pages/Plans';
+import Coverage from './pages/Coverage';
 import FooterNotice from './components/FooterNotice';
 import './index.css';
 
@@ -23,10 +25,12 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/plans" element={<Plans />} />
+        <Route path="/coverage" element={<Coverage />} />
         
         {/* Wrapped Dashboard/Internal Routes */}
         <Route path="/onboarding" element={<AppLayout><Onboarding /></AppLayout>} />
-        <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin" element={<AppLayout><Admin /></AppLayout>} />
         
         <Route path="*" element={<Navigate to="/" replace />} />

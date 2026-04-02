@@ -7,19 +7,17 @@ export default function Landing() {
       
       {/* Navigation */}
       <nav className="flex items-center justify-between px-6 py-4 z-10 w-full shrink-0">
-        <div className="flex items-center gap-1 font-black text-xl tracking-tight leading-none bg-white text-[#000000] px-2 py-1 rounded-sm select-none">
-          G
-        </div>
+        <div />
         
         <div className="hidden lg:flex items-center gap-7 text-sm font-semibold tracking-wide">
-          <span className="cursor-pointer flex items-center gap-1.5 hover:opacity-80 transition-opacity">
+          <Link to="/coverage" className="cursor-pointer flex items-center gap-1.5 hover:opacity-80 transition-opacity">
             Coverage Options
-          </span>
+          </Link>
+          <Link to="/plans" className="cursor-pointer flex items-center gap-1.5 hover:opacity-80 transition-opacity">
+            Plans
+          </Link>
           <span className="cursor-pointer flex items-center gap-1.5 hover:opacity-80 transition-opacity">
-            Trigger Network 
-          </span>
-          <span className="cursor-pointer flex items-center gap-1.5 hover:opacity-80 transition-opacity">
-            Gig Platforms 
+            Customer Service
           </span>
           <Link to="/dashboard" className="cursor-pointer hover:opacity-80 transition-opacity">
             Worker Dashboard
@@ -42,10 +40,12 @@ export default function Landing() {
         
         <div className="w-full h-[65vh] xl:h-[75vh] max-w-[1400px] mx-auto relative rounded-3xl overflow-hidden">
             {/* Interactive Spline 3D Integration */}
-         <div className="w-full h-full relative spline-container">
+         <div className="w-full h-full relative spline-container pointer-events-none">
            {/* Hiding the spline logo/watermark overlay */}
            <style>{`
              .spline-container a { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
+             /* Hack to visually crush the exported orange background into black while keeping the coin bright */
+             .spline-container canvas { filter: grayscale(1) contrast(2.5) brightness(0.4); }
            `}</style>
            <Spline scene="https://prod.spline.design/Cj0g56C3a624cvuV/scene.splinecode" />
          </div>

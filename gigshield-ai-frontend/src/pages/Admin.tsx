@@ -14,7 +14,7 @@ export default function Admin() {
             <p className="text-xs font-mono text-light/50 uppercase tracking-widest">Network Overview</p>
           </div>
         </div>
-        <Link to="/dashboard" className="text-xs font-mono text-teal uppercase border border-teal/30 px-3 py-1 bg-teal/5">Exit</Link>
+        <Link to="/" className="text-xs font-mono text-teal uppercase border border-teal/30 px-3 py-1 bg-teal/5">Exit</Link>
       </header>
 
       {/* Top Stats */}

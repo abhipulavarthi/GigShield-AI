@@ -41,7 +41,7 @@ export default function Onboarding() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (zoneData) {
-      navigate('/dashboard');
+      navigate('/');
     }
   };
 
