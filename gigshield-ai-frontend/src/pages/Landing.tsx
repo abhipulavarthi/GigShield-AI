@@ -1,13 +1,38 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Spline from '@splinetool/react-spline';
+import { useState, useEffect } from 'react';
 
 export default function Landing() {
+  const [user, setUser] = useState<any>(null);
+  const [isHoveringLogout, setIsHoveringLogout] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) setUser(JSON.parse(savedUser));
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+    navigate('/');
+  };
+
   return (
     <div className="min-h-screen w-full bg-[#000000] flex flex-col font-sans overflow-hidden text-white selection:bg-white selection:text-[#000000]">
       
       {/* Navigation */}
-      <nav className="flex items-center justify-between px-6 py-4 z-10 w-full shrink-0">
-        <div />
+      <nav className="flex items-center justify-between px-8 pt-2 pb-6 z-10 w-full shrink-0">
+        <div className="flex items-center gap-4 min-w-[200px]">
+           {user ? (
+             <div className="flex flex-col gap-3">
+                <span className="text-2xl font-black tracking-tight leading-none uppercase">{user.name}</span>
+                <span className="text-[11px] text-blue-400 font-extrabold tracking-[0.2em] border border-blue-500/20 bg-blue-500/10 px-5 py-2 rounded-full uppercase w-fit shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+                   {user.role === 'ADMIN' ? 'ADMIN OPS' : (user.platform || 'SHIELDPLUS')}
+                </span>
+             </div>
+           ) : <div />}
+        </div>
         
         <div className="hidden lg:flex items-center gap-7 text-sm font-semibold tracking-wide">
           <Link to="/coverage" className="cursor-pointer flex items-center gap-1.5 hover:opacity-80 transition-opacity">
@@ -20,19 +45,30 @@ export default function Landing() {
             Customer Service
           </span>
           <Link to="/dashboard" className="cursor-pointer hover:opacity-80 transition-opacity">
-            Worker Dashboard
+            Dashboard
           </Link>
           <Link to="/admin" className="cursor-pointer hover:opacity-80 transition-opacity">
             Admin Portal
           </Link>
         </div>
         
-        <Link 
-          to="/onboarding" 
-          className="bg-white text-black font-semibold text-sm px-6 py-2.5 rounded hover:bg-gray-100 transition-colors"
-        >
-          Activate Coverage
-        </Link>
+        {user ? (
+          <button 
+            onClick={handleLogout}
+            onMouseEnter={() => setIsHoveringLogout(true)}
+            onMouseLeave={() => setIsHoveringLogout(false)}
+            className={`min-w-[160px] ${isHoveringLogout ? 'bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'bg-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]'} text-white font-black text-xs px-8 py-3 rounded uppercase tracking-widest transition-all duration-300 active:scale-95`}
+          >
+            {isHoveringLogout ? 'Logout' : 'Covered'}
+          </button>
+        ) : (
+          <Link 
+            to="/onboarding" 
+            className="bg-white text-black font-semibold text-sm px-6 py-2.5 rounded hover:bg-gray-100 transition-colors"
+          >
+            Activate Coverage
+          </Link>
+        )}
       </nav>
 
       {/* Main Graphic Layer */}

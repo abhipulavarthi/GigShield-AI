@@ -1,15 +1,31 @@
-import { Link } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Check, X, ShieldCheck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { 
+  ArrowLeft, Check, X, ShieldCheck, 
+  ArrowRight, Activity, Shield as ShieldIcon, Lock as LockIcon,
+  ChevronRight
+} from 'lucide-react';
 
 export default function Plans() {
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) setUser(JSON.parse(savedUser));
+  }, []);
+
   const plans = [
     {
       id: 'lite',
+      tier: 1,
       name: 'ShieldLite',
       badge: 'Lite',
       badgeColor: 'bg-green-500/10 text-green-400 border-green-500/20',
       description: 'New workers · low-risk zones',
-      price: '15',
+      price: 15,
       priceUnit: '/ week',
       stats: [
         { label: 'MAX PAYOUT', value: '₹500' },
@@ -30,16 +46,17 @@ export default function Plans() {
         'Workers in low-risk Tier 1–2 zones',
         'Part-time or weekend gig workers'
       ],
-      reasoning: "ShieldLite is the entry point — designed for workers who are just starting out or working in relatively safe zones. At ₹15/week it removes the cost barrier entirely, letting workers experience automatic payouts and build a trust score over 4 weeks. The two covered triggers (rain and heatwave) are the most common across all Indian cities, so even a minimal plan delivers real value. Once trust is established, upgrading to Plus is frictionless."
+      reasoning: "ShieldLite is the entry point — designed for workers who are just starting out or working in relatively safe zones. At ₹15/week it removes the cost barrier entirely, letting workers experience automatic payouts and build a trust score over 4 weeks."
     },
     {
       id: 'plus',
+      tier: 2,
       name: 'ShieldPlus',
       badge: 'Plus',
       badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
       isPopular: true,
       description: 'Regular workers · medium-risk zones',
-      price: '25',
+      price: 25,
       priceUnit: '/ week',
       stats: [
         { label: 'MAX PAYOUT', value: '₹1200' },
@@ -60,15 +77,16 @@ export default function Plans() {
         'Workers in urban Tier 2–3 zones with traffic exposure',
         'Workers who\'ve completed 3+ weeks on the platform'
       ],
-      reasoning: "ShieldPlus is the sweet spot for most gig workers. It covers all 4 primary triggers — rain, heatwave, pollution, and traffic — which together account for the vast majority of income disruptions in Indian metros. The AI zone-upgrade feature is a standout: during monsoon weeks, the system automatically elevates the zone's risk tier and adjusts protection without requiring the worker to do anything. At ₹25/week, the ₹1200 weekly payout ceiling means a bad monsoon week can still be meaningfully cushioned."
+      reasoning: "ShieldPlus is the sweet spot for most gig workers. It covers all 4 primary triggers — rain, heatwave, pollution, and traffic — which together account for the vast majority of income disruptions in Indian metros."
     },
     {
       id: 'pro',
+      tier: 4,
       name: 'ShieldPro',
       badge: 'Pro',
       badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
       description: 'Full-time workers · high-risk zones',
-      price: '35',
+      price: 35,
       priceUnit: '/ week',
       stats: [
         { label: 'MAX PAYOUT', value: '₹2000' },
@@ -89,15 +107,16 @@ export default function Plans() {
         'Workers in dense urban Tier 3–4 zones (Mumbai, Chennai, Hyderabad)',
         'Workers with dependents but not yet on ShieldFamily'
       ],
-      reasoning: "ShieldPro is built for workers whose income is genuinely load-bearing. The addition of curfew and local shutdown coverage matters enormously in cities where political events, festivals, or law-and-order situations can shut down entire zones for a full day. With a ₹2000/week payout ceiling and 4 triggers per week, a complete monsoon week can still be partially recovered. The safety valve here waives the premium entirely (not just 50%) when earnings dip below ₹2000 — because high-tier workers in bad weeks need the most protection, not the most cost."
+      reasoning: "ShieldPro is built for workers whose income is genuinely load-bearing. The addition of curfew and local shutdown coverage matters enormously in urban environments."
     },
     {
       id: 'max',
+      tier: 5,
       name: 'ShieldMax',
       badge: 'Max',
       badgeColor: 'bg-red-500/10 text-red-400 border-red-500/20',
       description: 'Extreme-risk · monsoon season',
-      price: '50',
+      price: 50,
       priceUnit: '/ week',
       stats: [
         { label: 'MAX PAYOUT', value: '₹3500' },
@@ -114,121 +133,149 @@ export default function Plans() {
         { text: 'IMD + weather station sync', included: true }
       ],
       whoItsFor: [
-        'Workers in Tier 4–5 flood-prone zones (Chennai, Mumbai coastal, Patna)',
-        'Seasonal workers active during June–September monsoon peak',
-        'High-trust verified workers wanting instant payout with no re-validation'
+        'Workers in Tier 4–5 flood-prone zones (Chennai, Mumbai, Patna)',
+        'Seasonal workers active during monsoon peak',
+        'High-trust verified workers wanting instant payout'
       ],
-      reasoning: "ShieldMax is the top-tier plan for workers operating in the highest-risk conditions in India. Flash flood is its exclusive 6th trigger — triggered by IMD flood zone alerts and validated through barometric, acoustic, and GPS cross-checks — and pays the maximum ₹700 per event. The ₹3500 weekly ceiling means even a catastrophic week with 5 trigger events is substantially covered. For verified high-trust users, payouts are instant — no re-validation queue, no hold period. This plan is also ideal as a seasonal upgrade: a Plus or Pro worker can switch to Max for the monsoon months and switch back, keeping costs low year-round."
-    },
-    {
-      id: 'family',
-      name: 'ShieldFamily',
-      badge: 'Family',
-      badgeColor: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-      description: 'For workers supporting dependents',
-      price: '45',
-      priceUnit: '/ week',
-      stats: [
-        { label: 'MAX PAYOUT', value: '₹2500' },
-        { label: 'PER TRIGGER', value: '₹600' },
-        { label: 'MAX TRIGGERS', value: '4/week' },
-        { label: 'ZONE TIER', value: '2 – 4' }
-      ],
-      features: [
-        { text: 'Income support for dependents', included: true },
-        { text: 'Dependent buffer: +₹200/trigger', included: true },
-        { text: 'Survival threshold: ₹2500/week', included: true },
-        { text: 'Safety valve (₹0 if <₹2500)', included: true },
-        { text: 'All Lite + Plus triggers', included: true },
-        { text: 'Unique: higher survival threshold', included: true }
-      ],
-      whoItsFor: [
-        'Workers with children or elderly dependents',
-        'Single-income household earners',
-        'Workers in Tier 2-4 zones needing higher buffer'
-      ],
-      reasoning: "ShieldFamily addresses a real gap — a worker supporting 2 kids and an elderly parent has fundamentally higher financial stakes than a single worker. The key differentiator is the dependent buffer: ₹200 extra per trigger payout, auto-applied when dependents are registered in the profile. The survival threshold is also raised to ₹2500/week (vs ₹2000 for other plans) since family expenses are higher. This makes the safety valve more meaningful for the people who need it most."
-    },
-    {
-      id: 'fleet',
-      name: 'ShieldFleet',
-      badge: 'Fleet',
-      badgeColor: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-      description: 'Group plan for 5–50 workers · restaurant fleets',
-      price: '18',
-      priceUnit: '/ worker / week',
-      stats: [
-        { label: 'MAX PAYOUT / WORKER', value: '₹1500' },
-        { label: 'PER TRIGGER', value: '₹400' },
-        { label: 'MAX TRIGGERS', value: '3/week' },
-        { label: 'ZONE TIER', value: '1 – 3' }
-      ],
-      features: [
-        { text: 'Min. 5 workers per fleet', included: true },
-        { text: 'Fleet discount (Up to 30% off)', included: true },
-        { text: 'Admin dashboard included', included: true },
-        { text: 'B2B billing & account portal', included: true },
-        { text: 'Individual tracking per rider', included: true },
-        { text: 'Aggregator billing support', included: true }
-      ],
-      whoItsFor: [
-        'Restaurant chains covering their delivery staff',
-        'Zomato/Swiggy fleet managers (5–50 riders)',
-        'NGOs or unions enrolling gig workers in bulk'
-      ],
-      reasoning: "ShieldFleet opens a B2B channel — instead of individual sign-ups, a restaurant chain or fleet manager enrolls their entire delivery team under one account. At 30 workers, the 30% discount brings the effective cost to just ₹12.60/worker/week, which is cheaper than ShieldLite for the individual. Each worker still gets individual tracking and payouts, but billing goes to the fleet admin. This is also a strong distribution strategy — onboarding one restaurant can mean 20–40 workers covered instantly."
+      reasoning: "ShieldMax is the top-tier plan for workers operating in the highest-risk conditions in India. Flash flood is its exclusive 6th trigger."
     }
   ];
 
+  const handleConfirmPlan = async () => {
+    if (!user || !selectedPlan) return;
+    setIsUpdating(true);
+    try {
+      const resp = await fetch(`http://localhost:8080/workers/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tier: selectedPlan.tier,
+          premium: selectedPlan.price,
+          paymentStatus: 'PENDING'
+        })
+      });
+      if (resp.ok) {
+        const updatedUser = await resp.json();
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        localStorage.removeItem('is_new_user');
+        navigate('/dashboard');
+      }
+    } catch (e) {
+      console.error("Plan update failed", e);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#000000] text-white font-sans selection:bg-white selection:text-[#000000] p-6 lg:p-12">
+    <div className="min-h-screen bg-[#000000] text-white font-sans selection:bg-white selection:text-[#000000] pt-4 px-6 pb-12 lg:pt-6 lg:px-12 relative overflow-x-hidden">
+      
+      {/* Selection Overlay */}
+      {selectedPlan && (
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 flex items-center justify-center p-4">
+           <div className="max-w-xl w-full bg-[#0a0a0a] border border-white/20 rounded-[3rem] p-8 lg:p-12 flex flex-col gap-8 shadow-[0_0_100px_rgba(255,255,255,0.05)] relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8">
+                 <button onClick={() => setSelectedPlan(null)} className="p-2 opacity-40 hover:opacity-100 transition-opacity"><X className="w-6 h-6" /></button>
+              </div>
+              
+              <div className="flex flex-col gap-4">
+                 <div className="flex items-center gap-3">
+                    <span className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full border ${selectedPlan.badgeColor}`}>Selected</span>
+                    {selectedPlan.isPopular && <span className="bg-blue-500 text-white text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full">Most Popular</span>}
+                 </div>
+                 <h2 className="text-5xl font-black tracking-tighter uppercase">{selectedPlan.name}</h2>
+                 <p className="text-lg opacity-40 leading-tight">Review your parametric coverage perks before we activate your shield.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="p-5 rounded-3xl bg-white/5 border border-white/10 flex flex-col gap-1">
+                    <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">Initial Premium</span>
+                    <span className="text-3xl font-black tracking-tight text-green-400">₹{selectedPlan.price}</span>
+                    <span className="text-[10px] opacity-40 font-mono italic">per week</span>
+                 </div>
+                 <div className="p-5 rounded-3xl bg-white/5 border border-white/10 flex flex-col gap-1">
+                    <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">Trigger Cap</span>
+                    <span className="text-3xl font-black tracking-tight text-blue-400">{selectedPlan.stats[2].value}</span>
+                    <span className="text-[10px] opacity-40 font-mono italic">parametric events</span>
+                 </div>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                 <h4 className="text-[10px] font-black tracking-widest opacity-40 uppercase">Included Perks</h4>
+                 <div className="grid gap-3">
+                    {selectedPlan.features.filter((f: any) => f.included).slice(0, 4).map((f: any, i: number) => (
+                       <div key={i} className="flex items-center gap-4 group">
+                          <div className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                             <Check className="w-3.5 h-3.5 text-white" />
+                          </div>
+                          <span className="text-sm font-bold opacity-80 group-hover:opacity-100 transition-opacity">{f.text}</span>
+                       </div>
+                    ))}
+                 </div>
+              </div>
+
+              <div className="flex flex-col gap-4 pt-4">
+                 <button 
+                  onClick={handleConfirmPlan}
+                  disabled={isUpdating}
+                  className="w-full bg-white text-black py-5 rounded-[2rem] font-black text-lg hover:bg-gray-200 transition-all active:scale-[0.98] flex items-center justify-center gap-3">
+                    {isUpdating ? <Activity className="w-5 h-5 animate-spin" /> : "ACTIVATE SHIELD"}
+                    {!isUpdating && <ArrowRight className="w-5 h-5" />}
+                 </button>
+                 <p className="text-center text-[10px] opacity-30 font-bold uppercase tracking-[0.2em]">Next cycle starts Sunday · No lock-in period</p>
+              </div>
+           </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto flex flex-col gap-12">
-        
         {/* Header */}
         <header className="flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2 text-sm font-semibold opacity-60 hover:opacity-100 transition-opacity">
             <ArrowLeft className="w-4 h-4" /> Back to Home
           </Link>
-          <div />
+          <div className="flex items-center gap-4">
+             <span className="text-[10px] font-bold tracking-[0.2em] opacity-30 uppercase">Step 2 of 2 · Plan selection</span>
+          </div>
         </header>
 
         <div className="flex flex-col gap-4">
-          <h1 className="text-4xl lg:text-6xl font-bold tracking-tighter">Choose Your Coverage</h1>
-          <p className="text-lg opacity-60 max-w-2xl">Specialized parametric protection for every type of gig work.</p>
+          <h1 className="text-5xl lg:text-8xl font-black tracking-tighter uppercase leading-[0.85]">Choose Your <br /> <span className="opacity-20 text-white select-none">Coverage.</span></h1>
+          <p className="text-xl opacity-40 max-w-2xl leading-tight">AI-optimized parametric protection starting from ₹15/week. Secure your income against India's most common gig disruptions.</p>
         </div>
 
         {/* Plan Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-8">
           {plans.map((plan) => (
-            <div key={plan.id} className={`relative border rounded-3xl p-8 bg-white/[0.02] flex flex-col gap-8 transition-all hover:border-white/50
-              ${plan.isPopular ? 'border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.15)]' : 'border-white/25'}`}>
+            <div key={plan.id} className={`group relative border rounded-[3rem] p-6 xl:p-8 bg-white/[0.01] flex flex-col gap-8 transition-all hover:bg-white/[0.03] hover:border-white/50 hover:-translate-y-2
+              ${plan.isPopular ? 'border-blue-500/40 shadow-[0_30px_60px_rgba(59,130,246,0.1)]' : 'border-white/20'}`}>
               
               {plan.isPopular && (
-                <div className="absolute -top-3 right-8 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
+                <div className="absolute top-8 right-8 bg-blue-600 text-white text-[9px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full shadow-lg">
                   Most popular
                 </div>
               )}
 
               <div className="flex flex-col gap-4">
-                <span className={`w-fit text-[10px] uppercase tracking-widest font-bold px-3 py-1 rounded-full border ${plan.badgeColor}`}>
+                <span className={`w-fit text-[10px] uppercase tracking-[0.2em] font-black px-4 py-1.5 rounded-full border shadow-sm ${plan.badgeColor}`}>
                   {plan.badge}
                 </span>
-                <div className="flex flex-col gap-1">
-                  <h2 className="text-3xl font-bold tracking-tight">{plan.name}</h2>
-                  <p className="text-sm opacity-50">{plan.description}</p>
+                <div className="flex flex-col gap-1 mt-2">
+                  <h2 className="text-4xl font-black tracking-tight uppercase leading-none">{plan.name}</h2>
+                  <p className="text-sm opacity-40 leading-snug">{plan.description}</p>
                 </div>
-                <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-5xl font-black">₹{plan.price}</span>
-                  <span className="text-sm opacity-40">{plan.priceUnit}</span>
+                <div className="flex items-baseline gap-1 mt-4">
+                  <span className="text-6xl font-black text-white leading-none">₹{plan.price}</span>
+                  <span className="text-xs font-bold opacity-30 uppercase tracking-widest">{plan.priceUnit}</span>
                 </div>
               </div>
 
               {/* Stats Block */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 {plan.stats.map((stat, i) => (
-                  <div key={i} className="bg-white/5 rounded-xl p-3 flex flex-col gap-1">
-                    <span className="text-[9px] font-bold opacity-40 tracking-widest uppercase">{stat.label}</span>
-                    <span className="text-lg font-black tracking-tight">{stat.value}</span>
+                  <div key={i} className="bg-white/[0.05] rounded-3xl p-4 flex flex-col gap-0.5 border border-white/[0.05]">
+                    <span className="text-[8px] font-black opacity-30 tracking-widest uppercase">{stat.label}</span>
+                    <span className="text-md font-black tracking-tight">{stat.value}</span>
                   </div>
                 ))}
               </div>
@@ -236,62 +283,86 @@ export default function Plans() {
               {/* Features List */}
               <div className="flex flex-col gap-3">
                 {plan.features.map((feature, i) => (
-                  <div key={i} className={`flex items-center gap-3 text-sm ${feature.included ? 'opacity-90' : 'opacity-30'}`}>
+                  <div key={i} className={`flex items-center gap-4 text-xs font-bold ${feature.included ? 'opacity-80' : 'opacity-10'}`}>
                     {feature.included ? (
-                      <CheckCircle2 className="w-4 h-4 shrink-0 text-white" />
+                      <Check className="w-4 h-4 shrink-0 text-white" />
                     ) : (
                       <X className="w-4 h-4 shrink-0" />
                     )}
-                    <span>{feature.text}</span>
+                    <span className="tracking-tight">{feature.text}</span>
                   </div>
                 ))}
               </div>
 
-              <button className="w-full py-3 rounded-xl border border-white/20 font-bold text-sm hover:bg-white hover:text-black transition-all mt-auto active:scale-[0.98]">
-                Get started
+              <button 
+                onClick={() => setSelectedPlan(plan)}
+                className="w-full py-5 rounded-[2rem] bg-white text-black font-black text-sm hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-auto">
+                GET STARTED <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           ))}
         </div>
 
-        {/* Info Grid */}
-        <div className="flex flex-col gap-12 mt-16 pt-16 border-t border-white/10">
-          <h2 className="text-3xl font-bold tracking-tight">Plan Deep Dive</h2>
-          <div className="grid lg:grid-cols-2 gap-12">
-            {plans.map((plan) => (
-              <div key={plan.id + '-info'} className="flex flex-col gap-6 p-8 border border-white/10 rounded-2xl bg-white/[0.01]">
-                <div className="flex items-center gap-3">
-                   <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded border ${plan.badgeColor}`}>
-                     {plan.badge}
-                   </span>
-                   <h3 className="text-xl font-bold">{plan.name} — who it's for</h3>
-                </div>
-                
-                <div className="flex flex-col gap-4">
-                  <h4 className="text-xs font-mono uppercase tracking-widest opacity-40">Target Users</h4>
-                  <ul className="flex flex-col gap-3">
-                    {plan.whoItsFor.map((item, i) => (
-                      <li key={i} className="flex items-center gap-3 text-sm opacity-80 border-b border-white/5 pb-2">
-                        <Check className="w-4 h-4 text-white shrink-0" /> {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+        {/* Detailed Insights Section */}
+        <div className="flex flex-col gap-12 mt-32 pt-24 border-t border-white/5">
+           <div className="flex flex-col gap-2">
+              <h2 className="text-4xl font-black tracking-tighter uppercase">Plan Intelligence</h2>
+              <p className="text-sm opacity-40 font-mono tracking-widest">DEEP DIVE INTO PARAMETRIC LOGIC</p>
+           </div>
+           
+           <div className="grid lg:grid-cols-2 gap-12">
+              {plans.map((plan) => (
+                <div key={plan.id + '-info'} className="bg-white/[0.01] border border-white/5 rounded-[2.5rem] p-10 flex flex-col gap-8">
+                   <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shadow-inner ${plan.badgeColor}`}>
+                         <ShieldIcon className="w-6 h-6" />
+                      </div>
+                      <div className="flex flex-col">
+                         <span className="text-[9px] font-black opacity-30 uppercase tracking-[0.2em]">{plan.badge} CORE</span>
+                         <h3 className="text-2xl font-black uppercase tracking-tight">{plan.name} Logic</h3>
+                      </div>
+                   </div>
 
-                <div className="flex flex-col gap-4 mt-2">
-                  <p className="text-sm leading-relaxed opacity-70 italic border-l-2 border-white/10 pl-6 py-2">
-                    "{plan.reasoning}"
-                  </p>
+                   <div className="flex flex-col gap-4 bg-white/5 p-6 rounded-3xl border border-white/5">
+                      <h4 className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">Why this plan?</h4>
+                      <p className="text-[13px] leading-relaxed opacity-60 italic font-medium">
+                        "{plan.reasoning}"
+                      </p>
+                   </div>
+
+                   <div className="flex flex-col gap-4">
+                      <h4 className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">Optimized For</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {plan.whoItsFor.map((w, i) => (
+                           <span key={i} className="px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/10 text-[10px] font-bold opacity-60">
+                              {w}
+                           </span>
+                        ))}
+                      </div>
+                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+           </div>
         </div>
 
-        {/* Footer */}
-        <footer className="py-12 border-t border-white/10 flex justify-between items-center">
-            <h1 className="text-2xl font-bold tracking-tighter">GigShield</h1>
-            <p className="text-sm opacity-40 italic">Smart Parametric Coverage</p>
+        {/* Trust Footer */}
+        <footer className="py-24 border-t border-white/10 flex flex-col lg:flex-row justify-between items-center gap-12">
+            <div className="flex flex-col gap-2">
+                <h1 className="text-4xl font-black tracking-tighter uppercase leading-none">GigShield</h1>
+                <p className="text-sm opacity-40 font-mono tracking-widest">PROVISIONING SMART GIG-RESILIENCE</p>
+            </div>
+            <div className="flex gap-12">
+               <div className="flex flex-col gap-2">
+                  <span className="text-[9px] font-black opacity-30 uppercase tracking-widest">Protocol</span>
+                  <p className="text-xs font-bold opacity-60">Parametric v2.1</p>
+               </div>
+               <div className="flex flex-col gap-2">
+                  <span className="text-[9px] font-black opacity-30 uppercase tracking-widest">Security</span>
+                  <div className="flex items-center gap-2 text-xs font-bold text-green-400">
+                     <LockIcon className="w-3.5 h-3.5" /> 256-bit Encrypted
+                  </div>
+               </div>
+            </div>
         </footer>
       </div>
     </div>

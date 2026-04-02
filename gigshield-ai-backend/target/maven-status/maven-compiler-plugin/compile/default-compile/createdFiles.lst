@@ -1,10 +1,11 @@
-com\gigshield\api\repository\ZoneRepository.class
 com\gigshield\api\model\Claim.class
 com\gigshield\api\repository\ClaimRepository.class
-com\gigshield\api\model\Zone.class
 com\gigshield\api\repository\DisruptionRepository.class
+com\gigshield\api\model\Disruption.class
+com\gigshield\api\repository\ZoneRepository.class
+com\gigshield\api\ApiApplication$1.class
+com\gigshield\api\model\Zone.class
 com\gigshield\api\ApiApplication.class
 com\gigshield\api\controller\ApiController.class
 com\gigshield\api\model\Worker.class
-com\gigshield\api\model\Disruption.class
 com\gigshield\api\repository\WorkerRepository.class

@@ -5,20 +5,8 @@ import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
 import Plans from './pages/Plans';
 import Coverage from './pages/Coverage';
-import FooterNotice from './components/FooterNotice';
+import PaymentProfile from './pages/PaymentProfile';
 import './index.css';
-
-// Wrapper for inner app pages that applies the previous dark theme styling
-function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen bg-dark text-light font-sans flex flex-col justify-between selection:bg-teal selection:text-dark">
-      <main className="flex-1 w-full relative antialiased px-4 py-8">
-        {children}
-      </main>
-      <FooterNotice />
-    </div>
-  );
-}
 
 function App() {
   return (
@@ -27,11 +15,12 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/plans" element={<Plans />} />
         <Route path="/coverage" element={<Coverage />} />
+        <Route path="/onboarding" element={<Onboarding />} />
         
         {/* Wrapped Dashboard/Internal Routes */}
-        <Route path="/onboarding" element={<AppLayout><Onboarding /></AppLayout>} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/admin" element={<AppLayout><Admin /></AppLayout>} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/payment-profile" element={<PaymentProfile />} />
         
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -1,156 +1,317 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, ArrowRight, Activity, MapPin } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { 
+  Eye, EyeOff, Lock, User, 
+  ArrowRight, ShieldAlert,
+  ChevronLeft, CheckCircle2, Timer,
+  ArrowLeft
+} from 'lucide-react';
 
-const MOCK_ZONES: Record<string, { tier: number, risk: number, color: string, badge: string }> = {
-  '560034': { tier: 1, risk: 15, color: 'text-green border-green', badge: 'bg-green/10 text-green' },
-  '560001': { tier: 3, risk: 25, color: 'text-amber border-amber', badge: 'bg-amber/10 text-amber' },
-  '560068': { tier: 5, risk: 35, color: 'text-red border-red', badge: 'bg-red/10 text-red' }
-};
+type AuthView = 'login' | 'signup' | 'forgot' | 'success';
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 export default function Onboarding() {
+  const [view, setView] = useState<AuthView>('login');
+  const [role, setRole] = useState<'worker' | 'admin'>('worker');
+  const [platform, setPlatform] = useState<'zomato' | 'swiggy' | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [forgotStep, setForgotStep] = useState<1 | 2 | 3>(1);
   const navigate = useNavigate();
+
+  // Unified Form State
   const [formData, setFormData] = useState({
     name: '',
+    lastName: '',
     phone: '',
-    city: 'Bengaluru',
+    pin: '',
+    city: '',
     pincode: '',
-    earnings: ''
+    platform: 'zomato'
   });
 
-  const [zoneData, setZoneData] = useState<any>(null);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setError(null);
+  };
 
-  useEffect(() => {
-    if (formData.pincode.length === 6) {
-      const zone = MOCK_ZONES[formData.pincode] || MOCK_ZONES['560001'];
-      setZoneData(zone);
-    } else {
-      setZoneData(null);
-    }
-  }, [formData.pincode]);
-
-  const earningsVal = parseInt(formData.earnings) || 0;
-  const safetyValveActive = earningsVal > 0 && earningsVal < 2000;
-  
-  // Premium Calculation
-  const baseFee = 10;
-  const zoneRisk = zoneData ? zoneData.risk : 0;
-  const discount = safetyValveActive ? 15 : 0; // Simple flat discount mock
-  const premium = baseFee + zoneRisk - discount;
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleAction = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (zoneData) {
-      navigate('/');
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      if (view === 'forgot') {
+        // Handle forgot password steps locally for now or add API
+        if (forgotStep < 3) {
+          setForgotStep((prev) => (prev + 1) as 1 | 2 | 3);
+          setIsLoading(false);
+          return;
+        }
+        setView('success');
+        setTimeout(() => setView('login'), 2000);
+        setIsLoading(false);
+        return;
+      }
+
+      const endpoint = view === 'login' ? "/auth/login" : "/auth/signup";
+      const payload = view === 'login' ? {
+        phone: formData.phone,
+        pin: formData.pin,
+        role: role.toUpperCase()
+      } : {
+        ...formData,
+        role: role.toUpperCase(),
+        platform: platform || 'zomato',
+        tier: 1,
+        trustScore: 85,
+        premium: 15,
+        safetyValveActive: true
+      };
+
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Authentication failed");
+
+      localStorage.setItem('user', JSON.stringify(data));
+      
+      if (view === 'signup') {
+        localStorage.setItem('is_new_user', 'true');
+        setView('success');
+        setTimeout(() => navigate('/plans'), 2000);
+      } else {
+        navigate(role === 'admin' ? '/admin' : '/dashboard');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-      <header className="flex items-center gap-3 border-b border-border-dark pb-4">
-        <ShieldCheck className="w-8 h-8 text-teal" />
-        <div>
-          <h1 className="text-xl font-sans tracking-tight text-light">GigShield <span className="text-teal">AI</span></h1>
-          <p className="text-xs font-mono text-light/50">SMART PARAMETRIC COVERAGE</p>
-        </div>
-      </header>
+  const renderLoginForm = () => (
+    <div className="w-full flex flex-col gap-10 animate-in fade-in slide-in-from-right-4 duration-500">
+      <div className="flex flex-col gap-2">
+        <h3 className="text-3xl font-bold tracking-tight">Welcome back</h3>
+        <p className="text-sm opacity-40">Access your GigShield portal and active coverage.</p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <form onSubmit={handleAction} className="flex flex-col gap-6">
+        {error && (
+           <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-xs font-bold uppercase tracking-widest animate-in fade-in slide-in-from-top-2">
+              {error}
+           </div>
+        )}
+        <div className="bg-white/5 p-1.5 rounded-2xl border border-white/10 flex">
+           <button type="button" onClick={() => { setRole('worker'); setError(null); }} className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all ${role === 'worker' ? 'bg-white text-black shadow-lg' : 'text-white/40'}`}>Delivery Partner</button>
+           <button type="button" onClick={() => { setRole('admin'); setError(null); }} className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all ${role === 'admin' ? 'bg-white text-black shadow-lg' : 'text-white/40'}`}>Admin / Ops</button>
+        </div>
+
         <div className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-mono text-light/70 uppercase">Full Name</span>
-            <input 
-              type="text" 
-              required
-              className="flat-panel p-3 text-light focus:outline-none focus:border-teal transition-colors"
-              placeholder="e.g. Ravi Kumar"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-            />
-          </label>
-
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-mono text-light/70 uppercase">Phone Number</span>
-            <input 
-              type="tel" 
-              required
-              className="flat-panel p-3 data-mono focus:outline-none focus:border-teal transition-colors"
-              placeholder="9876543210"
-              value={formData.phone}
-              onChange={(e) => setFormData({...formData, phone: e.target.value})}
-            />
-          </label>
-
-          <div className="grid grid-cols-2 gap-4">
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-mono text-light/70 uppercase">City</span>
+           <div className="relative group">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-30" />
               <input 
+                required 
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
                 type="text" 
-                disabled
-                className="flat-panel p-3 text-light/50 bg-border-dark/20 cursor-not-allowed"
-                value={formData.city}
+                placeholder={role === 'worker' ? "Phone Number" : "Admin ID / Phone"} 
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-white/40 focus:bg-white/[0.08]" 
               />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-mono text-light/70 uppercase">Pin Code</span>
+           </div>
+           <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-30" />
               <input 
-                type="text" 
-                required
-                maxLength={6}
-                className="flat-panel p-3 data-mono text-amber focus:outline-none focus:border-amber transition-colors"
-                placeholder="560001"
-                value={formData.pincode}
-                onChange={(e) => setFormData({...formData, pincode: e.target.value.replace(/\D/g,'')})}
+                required 
+                name="pin"
+                value={formData.pin}
+                onChange={handleInputChange}
+                type={showPassword ? "text" : "password"} 
+                placeholder="Security PIN" 
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-sm focus:outline-none focus:border-white/40 focus:bg-white/[0.08]" 
               />
-            </label>
-          </div>
-
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-mono text-light/70 uppercase">Avg. Weekly Earnings (₹)</span>
-            <input 
-              type="number" 
-              required
-              className="flat-panel p-3 data-mono focus:outline-none focus:border-teal transition-colors"
-              placeholder="e.g. 2500"
-              value={formData.earnings}
-              onChange={(e) => setFormData({...formData, earnings: e.target.value})}
-            />
-          </label>
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100">
+                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+           </div>
         </div>
 
-        {zoneData && (
-          <div className="flat-panel p-4 flex flex-col gap-4 border-l-4 border-l-teal animate-in fade-in slide-in-from-bottom-2">
-            <div className="flex justify-between items-start">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-mono text-light/50">DETECTED RISK TIER</span>
-                <div className={`text-lg font-bold flex items-center gap-2 ${zoneData.color}`}>
-                  <Activity className="w-5 h-5" /> TIER {zoneData.tier}
-                </div>
-              </div>
-              <div className="flex flex-col gap-1 text-right">
-                <span className="text-xs font-mono text-light/50">WEEKLY PREMIUM</span>
-                <div className="text-xl data-mono text-teal">₹{premium}</div>
-              </div>
-            </div>
+        <div className="flex justify-end">
+           <button type="button" onClick={() => setView('forgot')} className="text-xs font-bold text-blue-400 hover:underline">Forgot password?</button>
+        </div>
 
-            {safetyValveActive && (
-              <div className="flat-panel border-teal border-dashed bg-teal/5 p-3 flex justify-between items-center text-sm">
-                <span className="text-teal font-mono">SAFETY VALVE ACTIVE</span>
-                <span className="text-teal font-bold">-₹15 DISCOUNT</span>
-              </div>
-            )}
+        <button disabled={isLoading} className="w-full bg-white text-black py-4 rounded-2xl font-black text-sm hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-30">
+          {isLoading ? <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin"></div> : <>Sign In to GigShield <ArrowRight className="w-4 h-4" /></>}
+        </button>
+
+        <p className="text-center text-xs opacity-40">New to GigShield? <button type="button" onClick={() => { setView('signup'); setError(null); }} className="font-bold text-white hover:underline">Create account</button></p>
+      </form>
+    </div>
+  );
+
+  const renderSignupForm = () => (
+    <div className="w-full flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-500 overflow-hidden">
+      <button onClick={() => { setView('login'); setError(null); }} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity"><ChevronLeft className="w-3 h-3" /> Back to Sign In</button>
+      <div className="flex flex-col gap-2">
+        <h3 className="text-3xl font-bold tracking-tight">Create Account</h3>
+        <p className="text-sm opacity-40">Join the parametric shield for gig workers.</p>
+      </div>
+
+      <form onSubmit={handleAction} className="flex flex-col gap-6 pb-4">
+        {error && (
+           <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-xs font-bold uppercase tracking-widest animate-in fade-in slide-in-from-top-2">
+              {error}
+           </div>
+        )}
+        <div className="bg-white/5 p-1.5 rounded-2xl border border-white/10 flex">
+           <button type="button" onClick={() => setRole('worker')} className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-bold transition-all ${role === 'worker' ? 'bg-white text-black' : 'text-white/40'}`}>Partner</button>
+           <button type="button" onClick={() => setRole('admin')} className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-bold transition-all ${role === 'admin' ? 'bg-white text-black' : 'text-white/40'}`}>Admin</button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+           <input required name="name" value={formData.name} onChange={handleInputChange} placeholder="First Name" className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs focus:outline-none focus:border-white/40" />
+           <input required name="lastName" value={formData.lastName} onChange={handleInputChange} placeholder="Last Name" className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs focus:outline-none focus:border-white/40" />
+        </div>
+
+        <input required name="phone" value={formData.phone} onChange={handleInputChange} type="tel" placeholder="Mobile Number" className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs focus:outline-none focus:border-white/40" />
+
+        {role === 'worker' && (
+          <div className="flex flex-col gap-4 pt-2">
+             <div className="flex gap-2">
+                <button type="button" onClick={() => setPlatform('zomato')} className={`flex-1 py-3 rounded-xl border text-[10px] font-black ${platform === 'zomato' ? 'bg-[#E23744] border-[#E23744] text-white' : 'bg-white/5 border-white/10 opacity-40'}`}>ZOMATO</button>
+                <button type="button" onClick={() => setPlatform('swiggy')} className={`flex-1 py-3 rounded-xl border text-[10px] font-black ${platform === 'swiggy' ? 'bg-[#FC8019] border-[#FC8019] text-white' : 'bg-white/5 border-white/10 opacity-40'}`}>SWIGGY</button>
+             </div>
+             <div className="grid grid-cols-2 gap-4">
+                <input required name="city" value={formData.city} onChange={handleInputChange} placeholder="City" className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs focus:outline-none focus:border-white/40" />
+                <input required name="pincode" value={formData.pincode} onChange={handleInputChange} placeholder="Pin Code" className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs focus:outline-none focus:border-white/40" />
+             </div>
           </div>
         )}
 
-        <button 
-          type="submit" 
-          disabled={!zoneData}
-          className={`mt-4 p-4 flex items-center justify-center gap-2 font-bold font-sans transition-all w-full
-            ${zoneData ? 'bg-teal text-dark hover:bg-teal/90' : 'bg-border-dark text-light/30 cursor-not-allowed'}`}
-        >
-          ACTIVATE COVERAGE <ArrowRight className="w-5 h-5" />
+        <div className="grid grid-cols-1 gap-4">
+           <input required name="pin" value={formData.pin} onChange={handleInputChange} type="password" placeholder="Create 4-digit PIN" className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs focus:outline-none focus:border-white/40" />
+        </div>
+
+        <div className="flex items-start gap-3 px-2">
+           <input required type="checkbox" className="mt-1 w-3 h-3 rounded border-white/20 bg-white/5 accent-white shrink-0" />
+           <p className="text-[9px] opacity-30 leading-tight uppercase tracking-wider font-bold">I agree to the parametric payout terms and automated fraud monitoring system.</p>
+        </div>
+
+        <button disabled={isLoading || (role === 'worker' && !platform)} className="w-full bg-white text-black py-4 rounded-2xl font-black text-sm hover:opacity-90 flex items-center justify-center gap-2 mt-2 disabled:opacity-30">
+           {isLoading ? "PROCESSSING..." : "CREATE ACCOUNT"}
+        </button>
+        <p className="text-center text-xs opacity-30">Existing member? <button type="button" onClick={() => setView('login')} className="font-bold text-white hover:underline">Sign in</button></p>
+      </form>
+    </div>
+  );
+
+  const renderForgotForm = () => (
+    <div className="w-full flex flex-col gap-10 animate-in fade-in slide-in-from-right-4 duration-500">
+      <button onClick={() => { setView('login'); setForgotStep(1); }} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity"><ChevronLeft className="w-3 h-3" /> Back to Sign In</button>
+      <div className="flex flex-col gap-2">
+        <h3 className="text-3xl font-bold tracking-tight">Recovery</h3>
+        <p className="text-sm opacity-40">
+           {forgotStep === 1 && "Identity verification."}
+           {forgotStep === 2 && "Enter verification code."}
+           {forgotStep === 3 && "Secure new PIN setup."}
+        </p>
+      </div>
+
+      <form onSubmit={handleAction} className="flex flex-col gap-6">
+        {forgotStep === 1 && (
+           <div className="flex flex-col gap-4">
+              <input required type="tel" placeholder="Registered Mobile" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:outline-none focus:border-white/40" />
+           </div>
+        )}
+        {forgotStep === 2 && (
+           <div className="flex flex-col gap-6">
+              <div className="flex justify-between gap-2">
+                 {[1,2,3,4,5,6].map(i => <input key={i} required maxLength={1} className="w-12 h-14 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-bold focus:border-white/40" />)}
+              </div>
+              <div className="flex justify-between text-[10px] font-bold opacity-40">
+                 <span><Timer className="inline w-3 h-3 mr-1" /> RESEND IN 0:54</span>
+                 <button type="button" className="text-blue-400">RESEND NOW</button>
+              </div>
+           </div>
+        )}
+        {forgotStep === 3 && (
+           <div className="flex flex-col gap-4">
+              <input required type="password" placeholder="New 6-digit PIN" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:outline-none focus:border-white/40" />
+              <input required type="password" placeholder="Confirm New PIN" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:outline-none focus:border-white/40" />
+           </div>
+        )}
+
+        <button disabled={isLoading} className="w-full bg-white text-black py-4 rounded-2xl font-black text-sm hover:opacity-90 flex items-center justify-center gap-2">
+           {isLoading ? "VERIFYING..." : (forgotStep === 3 ? "RESET PIN" : "CONTINUE")}
         </button>
       </form>
+    </div>
+  );
+
+  const renderSuccess = () => (
+    <div className="w-full flex flex-col items-center justify-center gap-6 py-12 animate-in fade-in zoom-in duration-500">
+       <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
+          <CheckCircle2 className="w-8 h-8 text-black" />
+       </div>
+       <div className="text-center">
+          <h3 className="text-2xl font-bold tracking-tight">Operation Successful</h3>
+          <p className="text-sm opacity-40 mt-1">Redirecting you to the portal...</p>
+       </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#000000] text-white font-sans flex flex-col lg:flex-row selection:bg-white selection:text-[#000000]">
+      {/* Left Panel: Brand Identity (Unchanged) */}
+      <div className="lg:w-1/2 p-8 lg:p-24 flex flex-col relative overflow-hidden bg-white/[0.01]">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/[0.05] rounded-full blur-[120px] pointer-events-none"></div>
+        
+        {/* Top Header Section */}
+        <div className="relative z-10 flex items-center gap-8 mb-32">
+           <h1 className="text-4xl font-black tracking-tighter text-white">GigShield</h1>
+           <Link to="/" className="flex items-center gap-3 text-sm font-semibold opacity-40 hover:opacity-100 transition-opacity border-l border-white/10 pl-8 h-8">
+              <ArrowLeft className="w-4 h-4" /> Back to Home
+           </Link>
+        </div>
+
+        {/* Main Content Section */}
+        <div className="relative z-10 flex flex-col gap-8">
+           <h2 className="text-6xl lg:text-[100px] font-black tracking-tighter leading-[0.85]">
+             Income protection <br /> <span className="opacity-30">for every delivery.</span>
+           </h2>
+           <p className="text-2xl lg:text-3xl font-bold tracking-tight opacity-60 max-w-2xl leading-tight">
+             "Architecting financial resilience for the gig economy through AI-driven parametric protection and instant digital security."
+           </p>
+        </div>
+      </div>
+
+      {/* Right Panel: Auth Hub */}
+      <div className="lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center items-center relative">
+        <div className="w-full max-w-md">
+          {view === 'login' && renderLoginForm()}
+          {view === 'signup' && renderSignupForm()}
+          {view === 'forgot' && renderForgotForm()}
+          {view === 'success' && renderSuccess()}
+
+          {view === 'login' && (
+            <div className="mt-8 flex items-center justify-center gap-4 py-4 border-t border-white/10">
+               <div className="flex items-center gap-2 bg-green-500/10 text-green-400 border border-green-500/20 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                  <ShieldAlert className="w-3 h-3" /> 10-layer fraud protection
+               </div>
+               <span className="text-[10px] opacity-40 font-bold uppercase tracking-widest italic">Instant payout eligible</span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

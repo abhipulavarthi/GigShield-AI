@@ -1,17 +1,53 @@
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, AlertTriangle,
-  CloudRain, Car, Sun, Wind, ShieldCheck
+  CloudRain, Car, Sun, Wind, ShieldCheck,
+  History, TrendingUp, Activity,
+  ChevronRight, Sparkles, CreditCard,
+  CreditCard as PaymentIcon
 } from 'lucide-react';
 
 export default function Dashboard() {
+  const [user, setUser] = useState<any>(null);
+  const [payouts, setPayouts] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (!savedUser) {
+      navigate('/onboarding');
+      return;
+    }
+    const userData = JSON.parse(savedUser);
+    setUser(userData);
+    fetchPayouts(userData.id);
+  }, [navigate]);
+
+  const fetchPayouts = async (userId: string) => {
+    setIsLoadingHistory(true);
+    try {
+      const resp = await fetch(`http://localhost:8080/claims?worker_id=${userId}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        setPayouts(data);
+      }
+    } catch (e) { 
+      console.error("History fetch failed", e); 
+      setPayouts([]);
+    }
+    finally { setIsLoadingHistory(false); }
+  };
+
+  if (!user) return null;
+
+  // Derive dynamic stats from user object
   const earningsData = [
-    { week: 'W1', value: 2600, percentage: 65 },
-    { week: 'W2', value: 2100, percentage: 52 },
-    { week: 'W3', value: 3200, percentage: 80 },
-    { week: 'W4', value: 2450, percentage: 61 },
-    { week: 'W5', value: 3200, percentage: 80 },
-    { week: 'W6', value: 3840, percentage: 95 }
+    { week: 'W1', value: Math.floor((user.weeklyEarnings || 2000) * 0.7), percentage: 40 },
+    { week: 'W2', value: Math.floor((user.weeklyEarnings || 2000) * 0.85), percentage: 65 },
+    { week: 'W3', value: Math.floor((user.weeklyEarnings || 2000) * 0.9), percentage: 75 },
+    { week: 'W4', value: Math.floor(user.weeklyEarnings || 2000), percentage: 90 }
   ];
 
   const coverage = [
@@ -19,19 +55,21 @@ export default function Dashboard() {
     { name: 'Heatwave', status: 'Active', color: 'text-green-400' },
     { name: 'Pollution (AQI)', status: 'Active', color: 'text-green-400' },
     { name: 'Traffic jam', status: 'Active', color: 'text-green-400' },
-    { name: 'Curfew / shutdown', status: 'Upgrade to Pro', color: 'text-white/30' },
-    { name: 'Flash flood', status: 'Max only', color: 'text-white/30' }
+    { name: 'Curfew / shutdown', status: (user.tier && user.tier > 2) ? 'Active' : 'Upgrade to Pro', color: (user.tier && user.tier > 2) ? 'text-green-400' : 'text-white/30' },
+    { name: 'Flash flood', status: (user.tier && user.tier > 4) ? 'Active' : 'Max only', color: (user.tier && user.tier > 4) ? 'text-green-400' : 'text-white/30' }
   ];
 
-  const payouts = [
-    { title: 'Heavy rain trigger', time: 'Today, 6:42 PM · 68mm rainfall detected', amount: '+₹350', status: 'Paid', icon: <CloudRain className="w-5 h-5" /> },
-    { title: 'Traffic congestion', time: 'Yesterday, 8:15 AM · Avg speed 6 km/h', amount: '+₹350', status: 'Paid', icon: <Car className="w-5 h-5" /> },
-    { title: 'Heatwave trigger', time: 'Mar 30 · 44°C recorded in zone', amount: '+₹350', status: 'Paid', icon: <Sun className="w-5 h-5" /> },
-    { title: 'Pollution alert', time: 'Mar 28 · AQI 381 in Chennai South', amount: '+₹350', status: 'Paid', icon: <Wind className="w-5 h-5" /> }
-  ];
+  const getPayoutIcon = (title: string = '') => {
+     const t = title.toLowerCase();
+     if (t.includes('rain')) return <CloudRain className="w-5 h-5 text-blue-400" />;
+     if (t.includes('traffic')) return <Car className="w-5 h-5 text-amber-400" />;
+     if (t.includes('heat')) return <Sun className="w-5 h-5 text-orange-400" />;
+     if (t.includes('pollution') || t.includes('wind')) return <Wind className="w-5 h-5 text-emerald-400" />;
+     return <Activity className="w-5 h-5 text-white/40" />;
+  };
 
   return (
-    <div className="min-h-screen bg-[#000000] text-white font-sans selection:bg-white selection:text-[#000000] p-4 lg:p-8">
+    <div className="min-h-screen bg-[#000000] text-white font-sans selection:bg-white selection:text-[#000000] pt-2 px-4 pb-12 lg:pt-4 lg:px-8">
       <div className="max-w-6xl mx-auto flex flex-col gap-8">
         
         {/* Header */}
@@ -39,79 +77,101 @@ export default function Dashboard() {
           <Link to="/" className="flex items-center gap-2 text-sm font-semibold opacity-60 hover:opacity-100 transition-opacity">
             <ArrowLeft className="w-4 h-4" /> Back to Home
           </Link>
-          <div />
+          <div className="flex items-center gap-4">
+          </div>
         </header>
 
         {/* Top Profile Bar */}
-        <header className="flex flex-wrap justify-between items-center bg-white/[0.03] border border-white/25 rounded-2xl p-4 lg:p-6 gap-4">
+        <header className="flex flex-wrap justify-between items-center bg-white/[0.03] border border-white/25 rounded-2xl p-4 lg:p-6 gap-4 relative overflow-hidden">
+          {user.paymentStatus === 'PENDING' && (
+            <div className="absolute top-0 left-0 w-full h-1 bg-amber-500/20">
+              <div className="h-full bg-amber-500 animate-[shimmer_2s_infinite]" style={{ width: '40%' }} />
+            </div>
+          )}
+          
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 font-bold text-xl">
-              AK
+            <div className="w-12 h-12 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 font-bold text-xl uppercase">
+              {user.name?.[0]}{user.lastName?.[0]}
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight">Arjun Kumar</h1>
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                <h1 className="text-xl font-bold tracking-tight uppercase">{user.name} {user.lastName}</h1>
+                <div className={`w-1.5 h-1.5 rounded-full ${user.paymentStatus === 'PAID' ? 'bg-green-500' : 'bg-amber-500'} animate-pulse`}></div>
               </div>
-              <p className="text-sm opacity-50">Zomato · Chennai · Member since Jan 2025</p>
+              <p className="text-sm opacity-50 capitalize">{user.platform || 'Partner'} · {user.city || 'Bangalore'} · Member · {user.pincode}</p>
             </div>
           </div>
           
           <div className="flex items-center gap-3">
-            <div className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest">
-              ShieldPlus
-            </div>
-            <div className="bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-xs opacity-80 font-mono">
-              Zone 3 · Medium risk
+            {user.paymentStatus === 'PENDING' && (
+              <Link to="/payment-profile" className="flex items-center gap-2 bg-amber-500/10 text-amber-500 border border-amber-500/20 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-amber-500/20 transition-all">
+                <PaymentIcon className="w-3 h-3" /> PENDING: ₹{user.premium}
+              </Link>
+            )}
+            <Link to="/payment-profile" className="bg-white text-black px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest hover:opacity-90 active:scale-[0.98] transition-all">
+               Payment Profile
+            </Link>
+            <div className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest whitespace-nowrap">
+               {user.role === 'ADMIN' ? 'ADMIN OPS' : 
+                (user.tier <= 1 ? 'SHIELDLITE' : 
+                 user.tier <= 3 ? 'SHIELDPLUS' : 
+                 user.tier === 4 ? 'SHIELDPRO' : 'SHIELDMAX')}
             </div>
           </div>
         </header>
 
+        {/* New User Call to Action */}
+        {(user.tier === 1 && !user.premium) && (
+          <Link to="/plans" className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 flex justify-between items-center group hover:scale-[1.01] transition-all cursor-pointer border border-white/10 shadow-[0_0_30px_rgba(37,99,235,0.2)]">
+            <div className="flex items-center gap-6">
+              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <Sparkles className="w-7 h-7 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <h2 className="text-xl font-bold tracking-tight">Activate Full Coverage</h2>
+                <p className="text-sm opacity-80">Pick a plan to start receiving automated payouts for disruptions.</p>
+              </div>
+            </div>
+            <ChevronRight className="w-6 h-6 opacity-40 group-hover:opacity-100 transition-opacity" />
+          </Link>
+        )}
 
-        {/* Dynamic Alert Banner */}
+        {/* Alert Banner */}
         <div className="bg-amber-950/20 border border-amber-900/30 rounded-2xl p-5 flex gap-4 items-start relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
           <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
           <div className="flex flex-col gap-1">
             <h3 className="font-bold text-amber-500 tracking-tight">
-               Heavy rain alert — Chennai North zone
+               Sensor monitoring active — {user.city}
             </h3>
             <p className="text-sm opacity-80 leading-relaxed text-amber-200/70">
-              Rainfall forecast 62mm tonight. Trigger threshold (40mm) likely to be crossed. Payout will be auto-credited to your wallet.
+              GigShield is tracking triggers in your area. Low visibility and rain thresholds are currently at yellow alert.
             </p>
           </div>
         </div>
 
-        {/* Main Stats Grid */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'THIS WEEK\'S EARNINGS', value: '₹3,840', sub: '↑ vs ₹3,200 last week', color: 'text-white' },
-            { label: 'PAYOUTS RECEIVED', value: '₹1,050', sub: '3 triggers this week', color: 'text-green-400' },
-            { label: 'PREMIUM DUE', value: '₹25', sub: 'Auto-deducted Sunday', color: 'text-amber-400', hasAction: true },
-            { label: 'TRUST SCORE', value: '82', sub: 'High · fast payouts', color: 'text-blue-400' }
+            { label: 'THIS WEEK\'S EARNINGS', value: `₹${(user.weeklyEarnings || 0).toLocaleString()}`, sub: 'Verified payout stream', color: 'text-white' },
+            { label: 'PAYOUTS RECOVERED', value: `₹${(payouts.length * 350).toLocaleString()}`, sub: `${payouts.length} community triggers`, color: 'text-green-400' },
+            { label: 'REPUTATION', value: user.trustScore || '85', sub: 'Calculated by AI', color: 'text-blue-400' },
+            { label: 'PREMIUM STATUS', value: user.paymentStatus === 'PAID' ? `₹${user.premium}` : (user.paymentStatus === 'PENDING' ? 'ACTION REQ' : 'NO PLAN'), sub: user.paymentStatus === 'PAID' ? 'Coverage active' : 'Payment pending', color: user.paymentStatus === 'PAID' ? 'text-amber-400' : 'text-red-400' }
           ].map((stat, i) => (
             <div key={i} className="bg-white/[0.03] border border-white/25 rounded-2xl p-5 flex flex-col gap-2 relative group md:hover:bg-white/[0.05] transition-all">
                <span className="text-[9px] font-bold opacity-40 tracking-widest uppercase">{stat.label}</span>
                <div className="flex items-center justify-between">
                  <span className={`text-2xl font-black tracking-tight ${stat.color}`}>{stat.value}</span>
-                 {stat.hasAction && (
-                   <button className="text-[11px] font-bold bg-amber-400 text-black px-4 py-1.5 rounded-full hover:bg-amber-300 transition-colors">
-                     Pay now
-                   </button>
-                 )}
                </div>
                <span className="text-[10px] opacity-40 font-mono">{stat.sub}</span>
             </div>
           ))}
         </div>
 
-        {/* Main Visuals Grid */}
         <div className="grid lg:grid-cols-2 gap-6">
-          
-          {/* Earnings Chart Card */}
           <div className="bg-white/[0.03] border border-white/25 rounded-3xl p-8 flex flex-col gap-8">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-sm tracking-widest opacity-40 uppercase">WEEKLY EARNINGS (LAST 6 WEEKS)</h3>
+              <h3 className="font-bold text-sm tracking-widest opacity-40 uppercase">EARNINGS STABILITY</h3>
             </div>
             <div className="flex flex-col gap-5">
               {earningsData.map((d) => (
@@ -129,121 +189,110 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Trust Score Card */}
-          <div className="bg-white/[0.03] border border-white/25 rounded-3xl p-8 flex flex-col gap-6">
-            <h3 className="font-bold text-sm tracking-widest opacity-40 uppercase">TRUST SCORE BREAKDOWN</h3>
-            <div className="flex items-start gap-6">
-              <span className="text-6xl font-black text-green-400 tracking-tighter leading-none">82</span>
-              <div className="flex flex-col gap-1 py-1">
-                <span className="font-bold">High trust</span>
-                <p className="text-sm opacity-50 italic text-white/50">Instant payouts enabled</p>
-              </div>
-            </div>
-            <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden mt-4">
-              <div className="w-[82%] h-full bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.4)]"></div>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-               {[
-                 { label: 'GPS verified', active: true },
-                 { label: 'No fraud flags', active: true },
-                 { label: '6 wk streak', active: true },
-                 { label: 'Sensor consistent', active: false },
-                 { label: 'Real movement', active: false }
-               ].map((tag) => (
-                 <span key={tag.label} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border 
-                   ${tag.active ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-white/5 border-white/10 opacity-30'}`}>
-                   {tag.label}
-                 </span>
-               ))}
-            </div>
-          </div>
-
-          {/* Coverage Active Card */}
-          <div className="bg-white/[0.03] border border-white/25 rounded-3xl p-8 flex flex-col gap-6">
-            <h3 className="font-bold text-sm tracking-widest opacity-40 uppercase">COVERAGE ACTIVE</h3>
-            <div className="flex flex-col gap-4">
-               {coverage.map((item) => (
-                 <div key={item.name} className="flex justify-between items-center border-b border-white/5 pb-2">
-                   <div className="flex items-center gap-3">
-                     <div className={`w-2 h-2 rounded-full ${item.status === 'Active' ? 'bg-green-500' : 'bg-white/20'}`}></div>
-                     <span className={`text-sm ${item.status === 'Active' ? '' : 'opacity-40'}`}>{item.name}</span>
-                   </div>
-                   <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${item.color}`}>
-                     {item.status === 'Active' ? '✓ Active' : item.status}
-                   </span>
-                 </div>
-               ))}
-            </div>
-          </div>
-
-          {/* Premium Details Card */}
-          <div className="bg-white/[0.03] border border-white/25 rounded-3xl p-8 flex flex-col gap-6">
-            <h3 className="font-bold text-sm tracking-widest opacity-40 uppercase">PREMIUM DETAILS</h3>
-            <div className="flex flex-col gap-4 text-sm">
-                <div className="flex justify-between opacity-80">
-                  <span className="opacity-50">Base plan</span>
-                  <span className="font-bold">ShieldPlus</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="opacity-50">Weekly rate</span>
-                  <span className="font-bold font-mono">₹25</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="opacity-50">Zone multiplier</span>
-                  <span className="font-bold font-mono text-white/80">×1.2 (Zone 3)</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-white/5">
-                  <span className="opacity-50">AI adjustment</span>
-                  <span className="font-bold font-mono text-blue-400">+₹3 (monsoon)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="opacity-50 italic">Safety valve</span>
-                  <span className="font-bold text-green-400/60 font-mono">Not triggered</span>
-                </div>
-                <div className="flex justify-between pt-2 border-t border-white/10">
-                  <span className="font-bold opacity-80 uppercase tracking-widest text-[11px]">Final premium</span>
-                  <span className="text-xl font-black font-mono">₹25</span>
-                </div>
-                <div className="flex justify-between items-center mt-4 p-4 bg-white/5 rounded-2xl">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">Next due</span>
-                    <span className="font-bold">Sunday, Apr 6</span>
-                  </div>
-                  <ShieldCheck className="w-6 h-6 text-green-400 opacity-60" />
-                </div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Payout History Section */}
-        <div className="bg-white/[0.03] border border-white/25 rounded-3xl p-8 flex flex-col gap-8 mb-12">
-          <h3 className="font-bold text-sm tracking-widest opacity-40 uppercase">RECENT PAYOUT HISTORY</h3>
-          <div className="flex flex-col gap-6">
-             {payouts.map((p, i) => (
-                <div key={i} className="flex justify-between items-center group cursor-pointer hover:bg-white/[0.02] p-4 -m-4 rounded-2xl transition-all">
-                  <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center opacity-80">
-                      {p.icon}
+          <div className="grid gap-6">
+            <div className="bg-white/[0.03] border border-white/25 rounded-3xl p-8 flex flex-col gap-6">
+              <h3 className="font-bold text-sm tracking-widest opacity-40 uppercase">COVERAGE ACTIVE</h3>
+              <div className="flex flex-col gap-4">
+                {coverage.map((item) => (
+                  <div key={item.name} className="flex justify-between items-center border-b border-white/5 pb-2">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${item.status === 'Active' ? 'bg-green-500' : 'bg-white/20'}`}></div>
+                      <span className={`text-sm ${item.status === 'Active' ? '' : 'opacity-40'}`}>{item.name}</span>
                     </div>
-                    <div className="flex flex-col gap-0.5">
-                      <h4 className="font-bold text-lg">{p.title}</h4>
-                      <p className="text-xs opacity-40 font-mono">{p.time}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="text-green-400 font-black text-xl tracking-tight">{p.amount}</span>
-                    <span className="text-[12px] font-bold tracking-widest uppercase bg-green-500/10 text-green-500 border border-green-500/20 px-2.5 py-0.5 rounded-full">
-                      {p.status}
+                    <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${item.color}`}>
+                      {item.status === 'Active' ? '✓ Active' : item.status}
                     </span>
                   </div>
-                </div>
-             ))}
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Navigation Footer */}
-        <footer className="py-12 border-t border-white/10 flex justify-between items-center">
+        {/* History Tabs */}
+        <div className="grid lg:grid-cols-2 gap-8 mb-12">
+           
+           {/* Payout History */}
+           <div className="bg-white/[0.03] border border-white/25 rounded-3xl p-8 flex flex-col gap-8">
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-sm tracking-widest opacity-40 uppercase">RECENT PROTECTIONS</h3>
+                {isLoadingHistory ? <Activity className="w-4 h-4 animate-spin opacity-40" /> : <TrendingUp className="w-4 h-4 text-green-400 opacity-40" />}
+              </div>
+              <div className="flex flex-col gap-6">
+                 {payouts.length > 0 ? payouts.map((p: any, i: number) => (
+                    <div key={p.id || i} className="flex justify-between items-center group cursor-pointer hover:bg-white/[0.02] p-4 -m-4 rounded-2xl transition-all border-b border-white/[0.02] last:border-0">
+                      <div className="flex items-center gap-5">
+                        <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center opacity-80">
+                          {getPayoutIcon(p.type || p.title)}
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <h4 className="font-bold text-lg">{p.title || (p.type + ' trigger')}</h4>
+                          <p className="text-xs opacity-40 font-mono">
+                            {p.timestamp ? new Date(p.timestamp).toLocaleDateString() : 'Recent'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-green-400 font-black text-xl tracking-tight">+₹{p.amount || 350}</span>
+                      </div>
+                    </div>
+                 )) : (
+                   <div className="py-12 flex flex-col items-center gap-3 opacity-20 text-center">
+                     <History className="w-12 h-12" />
+                     <p className="text-xs font-bold uppercase tracking-widest font-mono">No recent triggers</p>
+                   </div>
+                 )}
+              </div>
+           </div>
+
+           {/* Billing History */}
+           <div className="bg-white/[0.03] border border-white/25 rounded-3xl p-8 flex flex-col gap-8">
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-sm tracking-widest opacity-40 uppercase">BILLING & DEPOSITS</h3>
+                <CreditCard className="w-4 h-4 opacity-40 text-blue-400" />
+              </div>
+              <div className="flex flex-col gap-6">
+                 {user.premium > 0 ? (
+                    <div className="flex justify-between items-center group cursor-pointer hover:bg-white/[0.02] p-4 -m-4 rounded-2xl transition-all relative overflow-hidden">
+                      <div className="flex items-center gap-5">
+                        <div className={`w-12 h-12 rounded-xl ${user.paymentStatus === 'PAID' ? 'bg-blue-500/10 border-blue-500/20' : 'bg-amber-500/10 border-amber-500/20'} border flex items-center justify-center`}>
+                          <ShieldCheck className={`w-5 h-5 ${user.paymentStatus === 'PAID' ? 'text-blue-400' : 'text-amber-400'}`} />
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <h4 className="font-bold text-lg">SHIELD ACTIVATION</h4>
+                          <p className="text-xs opacity-40 font-mono">
+                            {user.paymentStatus === 'PAID' ? `Paid on ${new Date(user.lastPaymentDate).toLocaleDateString()}` : 'Payment Required to Activate'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="text-white font-black text-xl tracking-tight">₹{user.premium}</span>
+                        {user.paymentStatus === 'PAID' ? (
+                          <span className="text-[10px] font-bold tracking-widest uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-0.5 rounded-full">
+                            SUCCESS
+                          </span>
+                        ) : (
+                          <button 
+                            onClick={() => navigate('/payment-profile')}
+                            className="bg-amber-500 text-black px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+                          >
+                            PAY NOW
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                 ) : (
+                    <div className="py-12 flex flex-col items-center gap-3 opacity-20 text-center">
+                      <History className="w-12 h-12" />
+                      <p className="text-xs font-bold uppercase tracking-widest font-mono">No billing history</p>
+                    </div>
+                 )}
+              </div>
+           </div>
+
+        </div>
+
+        <footer className="py-12 flex justify-between items-center border-t border-white/5">
             <div />
             <h1 className="text-2xl font-bold tracking-tighter">GigShield</h1>
         </footer>
