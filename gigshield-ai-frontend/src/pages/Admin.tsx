@@ -4,10 +4,20 @@ import {
   Users, Wallet, ShieldAlert, Map, Settings, 
   Search, Filter, ArrowLeft, TrendingUp,
   AlertTriangle, MoreVertical, LayoutDashboard,
-  Zap, Bell, Users2, Thermometer, CloudRain,
-  Wind, Navigation, Globe, Activity, CheckCircle2,
-  Lock, User as UserIcon
+  Zap, Users2, Thermometer, CloudRain,
+  Wind, Navigation, Globe, Activity,
+  MapPin
 } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+
+// Fix for Leaflet default marker icons
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
 type Tab = 'overview' | 'workers' | 'payouts' | 'plans' | 'fraud' | 'zones' | 'fleet' | 'settings';
 
@@ -415,6 +425,219 @@ function PlansTab() {
 }
 
 function FraudTab() { return <div className="p-24 text-center opacity-20 font-bold uppercase tracking-[0.2em] animate-pulse">Monitoring Real-time Fraud Vectors...</div>; }
-function ZonesTab() { return <div className="p-24 text-center opacity-20 font-bold uppercase tracking-[0.2em]">Risk Intensity Aggregator</div>; }
+function MapReloader({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, 12);
+  }, [center, map]);
+  return null;
+}
+
+function ZonesTab() {
+  const [zones, setZones] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([17.3850, 78.4867]); // Hyderabad
+
+
+  useEffect(() => {
+    const autoPopulateZones = async () => {
+      setLoading(true);
+      try {
+        const resp = await fetch(`${API_URL}/workers`);
+        const workers = await resp.json();
+        
+        // Extract unique cities from workers
+        const uniqueCities = Array.from(new Set(workers.map((w: any) => w.city).filter(Boolean)));
+        
+        const autoZones: any[] = [];
+        
+        for (const city of uniqueCities) {
+          try {
+            // 1. Geocode location via Nominatim
+            const geoResp = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city as string)}&format=json&limit=1`);
+            const geoData = await geoResp.json();
+            if (!geoData.length) continue;
+            
+            const { lat, lon, display_name } = geoData[0];
+            const latitude = parseFloat(lat);
+            const longitude = parseFloat(lon);
+
+            // 2. Fetch live weather via Open-Meteo
+            const weatherResp = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code`);
+            const weatherData = await weatherResp.json();
+            
+            const weather = {
+              temperature: weatherData.current.temperature_2m,
+              humidity: weatherData.current.relative_humidity_2m,
+              precipitation: weatherData.current.precipitation,
+              wind_speed: weatherData.current.wind_speed_10m,
+              weather_code: weatherData.current.weather_code
+            };
+
+            const risk = calculateRisk(weather);
+
+            autoZones.push({
+              id: Math.random().toString(36).substr(2, 9),
+              name: `${city} Node`,
+              location: city,
+              type: 'Logistics',
+              coords: [latitude, longitude],
+              weather,
+              risk,
+              full_address: display_name,
+              timestamp: new Date().toLocaleTimeString()
+            });
+
+            // Compliance with Nominatim rate limits (1 req/sec)
+            await new Promise(r => setTimeout(r, 1000));
+          } catch (err) {
+            console.error(`Failed to process city: ${city}`, err);
+          }
+        }
+
+        if (autoZones.length > 0) {
+          setZones(autoZones);
+          setMapCenter(autoZones[0].coords);
+        }
+      } catch (e) {
+        console.error("Auto-population failed", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    autoPopulateZones();
+  }, []);
+
+  const getRiskColor = (level: string) => {
+    switch(level) {
+      case 'High': return 'text-red-400 bg-red-400/10 border-red-500/20';
+      case 'Medium': return 'text-amber-400 bg-amber-400/10 border-amber-500/20';
+      default: return 'text-green-400 bg-green-400/10 border-green-500/20';
+    }
+  };
+
+  const calculateRisk = (weather: any) => {
+    const temp = weather.temperature;
+    const rain = weather.precipitation;
+    const wind = weather.wind_speed;
+
+    if (rain > 5 || temp > 40 || wind > 25) return 'High';
+    if (rain > 1 || temp > 35 || wind > 15) return 'Medium';
+    return 'Low';
+  };
+
+
+  return (
+    <div className="flex flex-col gap-8 animate-in fade-in duration-500 pb-20">
+
+
+
+      <div className="grid lg:grid-cols-12 gap-8 min-h-[600px]">
+         {/* Live Map Panel */}
+         <div className="lg:col-span-8 bg-white/[0.03] border border-white/10 rounded-[2.5rem] overflow-hidden relative group">
+            <div className="absolute top-6 left-6 z-[1000] flex flex-col gap-2 pointer-events-none">
+               <div className="bg-black/60 backdrop-blur-md border border-white/10 p-4 rounded-3xl flex items-center gap-4">
+                  <div className="flex flex-col">
+                     <span className="text-[9px] font-black opacity-40 uppercase tracking-widest">Map Source</span>
+                     <span className="text-[11px] font-bold">OSM · Open-Meteo Integration</span>
+                  </div>
+                  <div className="h-6 w-px bg-white/10"></div>
+                  <div className="flex items-center gap-2">
+                     <Activity className="w-3.5 h-3.5 text-green-400 animate-pulse" />
+                     <span className="text-[11px] font-mono opacity-60">SYST_ACTIVE</span>
+                  </div>
+               </div>
+            </div>
+
+            <MapContainer center={mapCenter} zoom={12} style={{ height: '100%', width: '100%', background: '#0a0a0a' }} zoomControl={false}>
+               <TileLayer
+                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+               />
+               {zones.map((zone) => (
+                 <Marker key={zone.id} position={zone.coords}>
+                    <Popup className="dark-popup">
+                       <div className="p-3 flex flex-col gap-3 min-w-[200px]">
+                          <div className="flex justify-between items-start">
+                             <span className="font-black text-xs uppercase tracking-tight">{zone.name}</span>
+                             <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${getRiskColor(zone.risk)}`}>{zone.risk}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                             <div className="bg-white/5 p-2 rounded-xl border border-white/5 flex flex-col gap-0.5">
+                                <span className="text-[8px] opacity-40 uppercase font-bold">Temp</span>
+                                <span className="font-black text-sm">{zone.weather.temperature}°C</span>
+                             </div>
+                             <div className="bg-white/5 p-2 rounded-xl border border-white/5 flex flex-col gap-0.5">
+                                <span className="text-[8px] opacity-40 uppercase font-bold">Rain</span>
+                                <span className="font-black text-sm">{zone.weather.precipitation}mm</span>
+                             </div>
+                          </div>
+                          <p className="text-[9px] opacity-40 leading-snug">{zone.full_address}</p>
+                       </div>
+                    </Popup>
+                 </Marker>
+               ))}
+               <MapReloader center={mapCenter} />
+            </MapContainer>
+         </div>
+
+         {/* Zone Feed Panel */}
+         <div className="lg:col-span-4 flex flex-col gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex justify-between items-center px-2">
+               <h4 className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">Active Intelligence Feed</h4>
+               {loading && (
+                 <div className="flex items-center gap-1.5">
+                    <div className="w-1 h-1 rounded-full bg-blue-400 animate-ping"></div>
+                    <span className="text-[9px] font-black text-blue-400/60 uppercase">Syncing...</span>
+                 </div>
+               )}
+            </div>
+            {zones.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center bg-white/[0.01] border border-white/5 rounded-3xl p-12 text-center">
+                 <Globe className="w-12 h-12 opacity-10 mb-4" />
+                 <p className="text-sm opacity-20 font-bold uppercase tracking-widest">No zones registered.<br />Add a zone to monitor risk.</p>
+              </div>
+            ) : zones.map((zone) => (
+              <div key={zone.id} onClick={() => setMapCenter(zone.coords)} className="group cursor-pointer bg-white/[0.03] border border-white/10 hover:border-white/30 p-5 rounded-[2rem] flex flex-col gap-4 transition-all">
+                 <div className="flex justify-between items-start">
+                    <div className="flex flex-col gap-0.5">
+                       <span className="text-[10px] opacity-30 font-bold uppercase tracking-widest">{zone.type}</span>
+                       <h5 className="text-xl font-black uppercase tracking-tight">{zone.name}</h5>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${getRiskColor(zone.risk)} shadow-inner`}>
+                       {zone.risk} Risk
+                    </div>
+                 </div>
+
+                 <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-1.5">
+                       <Thermometer className="w-4 h-4 opacity-30" />
+                       <span className="text-sm font-black">{zone.weather.temperature}°</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-blue-400">
+                       <CloudRain className="w-4 h-4 opacity-60" />
+                       <span className="text-sm font-black">{zone.weather.precipitation}mm</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 opacity-40 italic">
+                       <Wind className="w-4 h-4" />
+                       <span className="text-[10px] font-bold">{zone.weather.wind_speed}km/h</span>
+                    </div>
+                 </div>
+
+                 <div className="pt-4 border-t border-white/5 flex justify-between items-center">
+                    <div className="flex items-center gap-2 opacity-30">
+                       <MapPin className="w-3 h-3" />
+                       <span className="text-[9px] font-mono uppercase truncate max-w-[120px]">{zone.location}</span>
+                    </div>
+                    <span className="text-[9px] font-bold opacity-30 font-mono italic">{zone.timestamp}</span>
+                 </div>
+              </div>
+            ))}
+         </div>
+      </div>
+    </div>
+  );
+}
 function FleetTab() { return <div className="p-24 text-center opacity-20 font-bold uppercase tracking-[0.2em]">B2B Logistics Interface</div>; }
 function SettingsTab() { return <div className="p-24 text-center opacity-20 font-bold uppercase tracking-[0.2em]">Core Algorithm Weights</div>; }

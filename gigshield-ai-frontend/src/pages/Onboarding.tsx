@@ -11,9 +11,10 @@ type AuthView = 'login' | 'signup' | 'forgot' | 'success';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
+const adminLogins = ['admin@gigshield.ai', 'ops@gigshield.ai', 'abhi@gigshield.ai', 'adminx'];
+
 export default function Onboarding() {
   const [view, setView] = useState<AuthView>('login');
-  const [role, setRole] = useState<'worker' | 'admin'>('worker');
   const [platform, setPlatform] = useState<'zomato' | 'swiggy' | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,6 +33,8 @@ export default function Onboarding() {
     platform: 'zomato'
   });
 
+  const currentRole = adminLogins.includes(formData.phone.toLowerCase()) ? 'admin' : 'worker';
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -44,6 +47,21 @@ export default function Onboarding() {
     setError(null);
 
     try {
+      const isAdminLogin = adminLogins.includes(formData.phone.toLowerCase());
+
+      if (view === 'login' && isAdminLogin && formData.pin === '1691') {
+        const adminUser = {
+          id: 'admin_1',
+          name: isAdminLogin ? (formData.phone.split('@')[0].toUpperCase() + ' ADMIN') : 'System Admin',
+          role: 'ADMIN',
+          platform: 'INTERNAL'
+        };
+        localStorage.setItem('user', JSON.stringify(adminUser));
+        navigate('/admin');
+        setIsLoading(false);
+        return;
+      }
+
       if (view === 'forgot') {
         // Handle forgot password steps locally for now or add API
         if (forgotStep < 3) {
@@ -61,10 +79,10 @@ export default function Onboarding() {
       const payload = view === 'login' ? {
         phone: formData.phone,
         pin: formData.pin,
-        role: role.toUpperCase()
+        role: currentRole.toUpperCase()
       } : {
         ...formData,
-        role: role.toUpperCase(),
+        role: currentRole.toUpperCase(),
         platform: platform || 'zomato',
         tier: 1,
         trustScore: 85,
@@ -88,7 +106,7 @@ export default function Onboarding() {
         setView('success');
         setTimeout(() => navigate('/plans'), 2000);
       } else {
-        navigate(role === 'admin' ? '/admin' : '/dashboard');
+        navigate(currentRole === 'admin' ? '/admin' : '/dashboard');
       }
     } catch (err: any) {
       setError(err.message);
@@ -110,10 +128,7 @@ export default function Onboarding() {
               {error}
            </div>
         )}
-        <div className="bg-white/5 p-1.5 rounded-2xl border border-white/10 flex">
-           <button type="button" onClick={() => { setRole('worker'); setError(null); }} className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all ${role === 'worker' ? 'bg-white text-black shadow-lg' : 'text-white/40'}`}>Delivery Partner</button>
-           <button type="button" onClick={() => { setRole('admin'); setError(null); }} className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all ${role === 'admin' ? 'bg-white text-black shadow-lg' : 'text-white/40'}`}>Admin / Ops</button>
-        </div>
+        {/* Toggle removed as requested */}
 
         <div className="flex flex-col gap-4">
            <div className="relative group">
@@ -124,7 +139,7 @@ export default function Onboarding() {
                 value={formData.phone}
                 onChange={handleInputChange}
                 type="text" 
-                placeholder={role === 'worker' ? "Phone Number" : "Admin ID / Phone"} 
+                placeholder="Phone or Identity ID" 
                 className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-white/40 focus:bg-white/[0.08]" 
               />
            </div>
@@ -172,10 +187,7 @@ export default function Onboarding() {
               {error}
            </div>
         )}
-        <div className="bg-white/5 p-1.5 rounded-2xl border border-white/10 flex">
-           <button type="button" onClick={() => setRole('worker')} className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-bold transition-all ${role === 'worker' ? 'bg-white text-black' : 'text-white/40'}`}>Partner</button>
-           <button type="button" onClick={() => setRole('admin')} className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-bold transition-all ${role === 'admin' ? 'bg-white text-black' : 'text-white/40'}`}>Admin</button>
-        </div>
+        {/* Admin signup restricted */}
 
         <div className="grid grid-cols-2 gap-4">
            <input required name="name" value={formData.name} onChange={handleInputChange} placeholder="First Name" className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs focus:outline-none focus:border-white/40" />
@@ -184,7 +196,7 @@ export default function Onboarding() {
 
         <input required name="phone" value={formData.phone} onChange={handleInputChange} type="tel" placeholder="Mobile Number" className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs focus:outline-none focus:border-white/40" />
 
-        {role === 'worker' && (
+        {currentRole === 'worker' && (
           <div className="flex flex-col gap-4 pt-2">
              <div className="flex gap-2">
                 <button type="button" onClick={() => setPlatform('zomato')} className={`flex-1 py-3 rounded-xl border text-[10px] font-black ${platform === 'zomato' ? 'bg-[#E23744] border-[#E23744] text-white' : 'bg-white/5 border-white/10 opacity-40'}`}>ZOMATO</button>
@@ -206,7 +218,7 @@ export default function Onboarding() {
            <p className="text-[9px] opacity-30 leading-tight uppercase tracking-wider font-bold">I agree to the parametric payout terms and automated fraud monitoring system.</p>
         </div>
 
-        <button disabled={isLoading || (role === 'worker' && !platform)} className="w-full bg-white text-black py-4 rounded-2xl font-black text-sm hover:opacity-90 flex items-center justify-center gap-2 mt-2 disabled:opacity-30">
+        <button disabled={isLoading || (currentRole === 'worker' && !platform)} className="w-full bg-white text-black py-4 rounded-2xl font-black text-sm hover:opacity-90 flex items-center justify-center gap-2 mt-2 disabled:opacity-30">
            {isLoading ? "PROCESSSING..." : "CREATE ACCOUNT"}
         </button>
         <p className="text-center text-xs opacity-30">Existing member? <button type="button" onClick={() => setView('login')} className="font-bold text-white hover:underline">Sign in</button></p>

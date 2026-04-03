@@ -41,3 +41,37 @@ h1, h2, h3, h4, h5, h6 {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* Leaflet Dark Theme Overrides */
+.leaflet-container {
+    background: #000000 !important;
+    outline: none;
+}
+
+.dark-popup .leaflet-popup-content-wrapper {
+    background: #0a0a0a !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem;
+    padding: 0;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.dark-popup .leaflet-popup-tip {
+    background: #0a0a0a !important;
+}
+
+.dark-popup .leaflet-popup-content {
+    margin: 0;
+    width: auto !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    display: block;
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+}

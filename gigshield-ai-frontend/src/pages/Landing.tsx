@@ -24,14 +24,11 @@ export default function Landing() {
       {/* Navigation */}
       <nav className="flex items-center justify-between px-8 pt-2 pb-6 z-10 w-full shrink-0">
         <div className="flex items-center gap-4 min-w-[200px]">
-           {user ? (
-             <div className="flex flex-col gap-3">
-                <span className="text-2xl font-black tracking-tight leading-none uppercase">{user.name}</span>
-                <span className="text-[11px] text-blue-400 font-extrabold tracking-[0.2em] border border-blue-500/20 bg-blue-500/10 px-5 py-2 rounded-full uppercase w-fit shadow-[0_0_20px_rgba(59,130,246,0.1)]">
-                   {user.role === 'ADMIN' ? 'ADMIN OPS' : (user.platform || 'SHIELDPLUS')}
-                </span>
-             </div>
-           ) : <div />}
+           {user && (
+             <span className="text-sm font-semibold tracking-wide uppercase hover:opacity-80 transition-opacity cursor-pointer">
+                {user.name}
+             </span>
+           )}
         </div>
         
         <div className="hidden lg:flex items-center gap-7 text-sm font-semibold tracking-wide">
@@ -44,12 +41,16 @@ export default function Landing() {
           <span className="cursor-pointer flex items-center gap-1.5 hover:opacity-80 transition-opacity">
             Customer Service
           </span>
-          <Link to="/dashboard" className="cursor-pointer hover:opacity-80 transition-opacity">
-            Dashboard
-          </Link>
-          <Link to="/admin" className="cursor-pointer hover:opacity-80 transition-opacity">
-            Admin Portal
-          </Link>
+          {user?.role !== 'ADMIN' && (
+            <Link to="/dashboard" className="cursor-pointer hover:opacity-80 transition-opacity">
+              Dashboard
+            </Link>
+          )}
+          {user?.role === 'ADMIN' && (
+            <Link to="/admin" className="cursor-pointer hover:opacity-80 transition-opacity">
+              Admin Portal
+            </Link>
+          )}
         </div>
         
         {user ? (
